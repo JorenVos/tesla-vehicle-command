@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"flag"
 	"fmt"
@@ -39,8 +38,6 @@ func Usage() {
 func main() {
 	// Command-line options
 	var (
-		keyFilename  string
-		certFilename string
 		verbose      bool
 		host         string
 		port         int
@@ -61,8 +58,6 @@ func main() {
 		}
 	}()
 
-	flag.StringVar(&certFilename, "cert", "", "TLS certificate chain `file` with concatenated server, intermediate CA, and root CA certificates")
-	flag.StringVar(&keyFilename, "tls-key", "", "Server TLS private key `file`")
 	flag.BoolVar(&verbose, "verbose", false, "Enable verbose logging")
 	flag.StringVar(&host, "host", "localhost", "Proxy server `hostname`")
 	flag.IntVar(&port, "port", defaultPort, "`Port` to listen on")
@@ -86,15 +81,6 @@ func main() {
 		return
 	}
 
-	if tlsPublicKey, err := protocol.LoadPublicKey(keyFilename); err == nil {
-		if bytes.Equal(tlsPublicKey.Bytes(), skey.PublicBytes()) {
-			fmt.Fprintln(os.Stderr, "It is unsafe to use the same private key for TLS and command authentication.")
-			fmt.Fprintln(os.Stderr, "")
-			fmt.Fprintln(os.Stderr, "Generate a new TLS key for this server.")
-			return
-		}
-	}
-
 	log.Debug("Creating proxy")
 	p, err := proxy.New(context.Background(), skey, cacheSize)
 	if err != nil {
@@ -109,5 +95,5 @@ func main() {
 	// method of your implementation can perform your business logic and then, if the request is
 	// authorized, invoke p.ServeHTTP. Finally, replace p in the below ListenAndServeTLS call with
 	// an object of your newly created type.
-	log.Error("Server stopped: %s", http.ListenAndServeTLS(addr, certFilename, keyFilename, p))
+	log.Error("Server stopped: %s", http.ListenAndServe(addr, p))
 }
